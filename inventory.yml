@@ -1,0 +1,7 @@
+cameras:
+  hosts:
+    raspberrypi:
+      username: pi
+      width: 640
+      height: 360
+      framerate: 20

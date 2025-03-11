@@ -4,9 +4,9 @@ After=multi-user.target
 
 [Service]
 Type=simple
-User=pi
+User={{ username }}
 Nice=-4
-ExecStart=/home/pi/stream.sh
+ExecStart=/home/{{ username }}/stream.sh
 Restart=on-abort
 
 [Install]

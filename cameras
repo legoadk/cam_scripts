@@ -1,23 +1,42 @@
 ---
-- hosts: cameras
+- name: Conifgure camera stream servers
+  hosts: cameras
   become: true
   become_user: root
-  #strategy: free
-  gather_facts: no
+  gather_facts: false
 
-- name: Install Stuff
-  apt:
-    name: ffmpeg
-    name: vlc
-    state: present
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
 
-- name: Install script
-  template: sec=stream.sh dest=/home/pi/stream.sh
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - ffmpeg
+          - vlc
+        state: present
 
-- name: install myservice systemd unit file
-  template: src=stream.service dest=/etc/systemd/system/stream.service
+    - name: Install stream script
+      ansible.builtin.template:
+        src: templates/stream.sh.j2
+        mode: '0755'
+        owner: '{{ username }}'
+        dest: '/home/{{ username }}/stream.sh'
 
-- name: start Stream
-  systemd: state=started name=stream daemon_reload=yes
+    - name: Install stream systemd unit file
+      ansible.builtin.template:
+        src: templates/stream.service.j2
+        mode: '0777' # this matches other files in this directory
+        dest: /etc/systemd/system/stream.service
+
+    - name: Reload systemd services
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Start stream service
+      ansible.builtin.systemd:
+        state: started
+        name: stream
 
 
