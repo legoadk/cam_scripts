@@ -30,11 +30,9 @@
         mode: '0777' # this matches other files in this directory
         dest: /etc/systemd/system/stream.service
 
-    - name: Reload systemd services
-      ansible.builtin.systemd:
-        daemon_reload: true
-
     - name: Start stream service
       ansible.builtin.systemd:
-        state: started
+        daemon_reload: true
         name: stream
+        enabled: true
+        state: started
