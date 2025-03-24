@@ -23,16 +23,42 @@
         mode: '0755'
         owner: '{{ username }}'
         dest: '/home/{{ username }}/stream.sh'
+      when: install_stream is true
 
     - name: Install stream systemd unit file
       ansible.builtin.template:
         src: templates/stream.service.j2
         mode: '0777' # this matches other files in this directory
         dest: /etc/systemd/system/stream.service
+      when: install_stream is true
 
     - name: Start stream service
       ansible.builtin.systemd:
         daemon_reload: true
         name: stream
         enabled: true
-        state: started
+        state: restarted
+      when: install_stream is true
+
+    - name: Install still script
+      ansible.builtin.template:
+        src: templates/prusaconnect_snapshot.sh.j2
+        mode: '0755'
+        owner: '{{ username }}'
+        dest: '/home/{{ username }}/prusaconnect_snapshot.sh'
+      when: install_still is true
+
+    - name: Install still systemd unit file
+      ansible.builtin.template:
+        src: templates/prusaconnect_snapshot.service.j2
+        mode: '0777' # this matches other files in this directory
+        dest: /etc/systemd/system/prusaconnect_snapshot.service
+      when: install_still is true
+
+    - name: Start still service
+      ansible.builtin.systemd:
+        daemon_reload: true
+        name: prusaconnect_snapshot
+        enabled: true
+        state: restarted
+      when: install_still is true

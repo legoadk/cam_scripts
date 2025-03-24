@@ -1,0 +1,13 @@
+[Unit]
+Description=PrusaConnect Snapshot for Pi Camera
+After=multi-user.target
+
+[Service]
+Type=simple
+User={{ username }}
+Nice=-4
+ExecStart=/home/{{ username }}/prusaconnect_snapshot.sh
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

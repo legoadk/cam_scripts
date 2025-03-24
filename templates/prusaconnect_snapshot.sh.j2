@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# https://forum.prusa3d.com/forum/postid/695831/
+set -Eeu
+set -o pipefail
+shopt -s extdebug
+
+FINGERPRINT="{{ prusaconnect_api_fingerprint }}"
+TOKEN="{{ prusaconnect_api_token }}"
+
+trap 'declare rc=$?;
+      >&2 echo "Unexpected error (exit-code $rc) executing $BASH_COMMAND at ${BASH_SOURCE[0]} line $LINENO";
+      exit $rc' ERR
+
+main () {
+
+  while true
+  do
+    #if ffmpeg -hide_banner -loglevel error -i rtsp://localhost:{{ stream_port }}/stream -ss 00:00:01 -f image2 -vframes 1 - \
+
+    if rpicam-still -t 1 --immediate --width {{ still_width }} --height {{ still_height }}  -o - \
+    | curl   https://webcam.connect.prusa3d.com/c/snapshot   \
+      -X PUT \
+      -L --fail-with-body \
+      -H "Content-Type: image/jpg" \
+      -H "Fingerprint: $FINGERPRINT" \
+      -H "Token: $TOKEN" \
+      --data-binary @-
+    then
+      printf "."
+      sleep {{ still_delay_sec }} 
+    else
+      echo
+      echo "?"
+      sleep {{ still_delay_sec_error }}
+    fi
+  done
+}
+
+main "$@"
