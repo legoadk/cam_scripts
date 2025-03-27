@@ -2,15 +2,14 @@ cameras:
   hosts:
     raspberrypi:
       username: pi
-      install_stream: true
-      stream_width: 1280
-      stream_height: 720
-      stream_framerate: 60
-      stream_port: 8554
-      install_still: false
-      still_width: 1920
-      still_height: 1080
-      still_delay_sec: 5 
-      still_delay_sec_error: 30
-      prusaconnect_api_token: 
-      prusaconnect_api_fingerprint: 
+      camera_width: 1280
+      camera_height: 720
+      camera_framerate: 30
+      install_go2rtc: true
+      go2rtc_platform: arm
+      go2rtc_asset: "go2rtc_linux_{{ go2rtc_platform }}"
+      install_prusaconnect_snapshot: true
+      snapshot_delay_sec: 10
+      snapshot_delay_sec_error: 30
+      prusaconnect_api_token: # get this from prusaconnect
+      prusaconnect_api_fingerprint: # generate a random uuid for this

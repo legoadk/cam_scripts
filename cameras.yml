@@ -1,64 +1,73 @@
 ---
-- name: Conifgure camera stream servers
+- name: Conifgure camera stream server
   hosts: cameras
   become: true
   become_user: root
   gather_facts: false
 
   tasks:
-    - name: Update apt cache
-      ansible.builtin.apt:
-        update_cache: true
+    - name: Install and configure go2rtc
+      when: install_go2rtc is true
+      block:
+        - name: Create go2rtc directory
+          ansible.builtin.file:
+            path: "/var/lib/go2rtc"
+            state: directory
+            mode: '0755'
 
-    - name: Install required packages
-      ansible.builtin.apt:
-        name:
-          - ffmpeg
-          - vlc
-        state: present
+        - name: Get the latest go2rtc release information
+          ansible.builtin.uri:
+            url: https://api.github.com/repos/AlexxIT/go2rtc/releases/latest
+            return_content: true
+          register: json_response
 
-    - name: Install stream script
-      ansible.builtin.template:
-        src: templates/stream.sh.j2
-        mode: '0755'
-        owner: '{{ username }}'
-        dest: '/home/{{ username }}/stream.sh'
-      when: install_stream is true
+        - name: Retrieve the latest go2rtc binary for {{ go2rtc_asset }}
+          loop: "{{ json_response.json.assets }}"
+          when: "go2rtc_asset == item.name"
+          ansible.builtin.get_url:
+            url: "{{ item.browser_download_url }}"
+            dest: "/var/lib/go2rtc/go2rtc"
+            mode: '0755'
+          become: true
 
-    - name: Install stream systemd unit file
-      ansible.builtin.template:
-        src: templates/stream.service.j2
-        mode: '0777' # this matches other files in this directory
-        dest: /etc/systemd/system/stream.service
-      when: install_stream is true
+        - name: Install the go2rtc configuration file
+          ansible.builtin.template:
+            src: templates/go2rtc.yaml.j2
+            mode: '0755'
+            dest: "/var/lib/go2rtc/go2rtc.yaml"
 
-    - name: Start stream service
-      ansible.builtin.systemd:
-        daemon_reload: true
-        name: stream
-        enabled: true
-        state: restarted
-      when: install_stream is true
+        - name: Install the go2rtc systemd service
+          ansible.builtin.template:
+            src: templates/go2rtc.service.j2
+            mode: '0777' # this matches other files in this directory
+            dest: /etc/systemd/system/go2rtc.service
 
-    - name: Install still script
-      ansible.builtin.template:
-        src: templates/prusaconnect_snapshot.sh.j2
-        mode: '0755'
-        owner: '{{ username }}'
-        dest: '/home/{{ username }}/prusaconnect_snapshot.sh'
-      when: install_still is true
+        - name: Start go2rtc service
+          ansible.builtin.systemd:
+            daemon_reload: true
+            name: go2rtc
+            enabled: true
+            state: restarted
 
-    - name: Install still systemd unit file
-      ansible.builtin.template:
-        src: templates/prusaconnect_snapshot.service.j2
-        mode: '0777' # this matches other files in this directory
-        dest: /etc/systemd/system/prusaconnect_snapshot.service
-      when: install_still is true
+    - name: Install prusaconnect-snapshot script and service
+      when: install_prusaconnect_snapshot is true and install_go2rtc is true
+      block:
+        - name: Install snapshot script
+          ansible.builtin.template:
+            src: templates/prusaconnect_snapshot.sh.j2
+            mode: '0755'
+            owner: '{{ username }}'
+            dest: '/home/{{ username }}/prusaconnect_snapshot.sh'
 
-    - name: Start still service
-      ansible.builtin.systemd:
-        daemon_reload: true
-        name: prusaconnect_snapshot
-        enabled: true
-        state: restarted
-      when: install_still is true
+        - name: Install snapshot systemd unit file
+          ansible.builtin.template:
+            src: templates/prusaconnect_snapshot.service.j2
+            mode: '0777' # this matches other files in this directory
+            dest: /etc/systemd/system/prusaconnect_snapshot.service
+
+        - name: Start snapshot service
+          ansible.builtin.systemd:
+            daemon_reload: true
+            name: prusaconnect_snapshot
+            enabled: true
+            state: restarted

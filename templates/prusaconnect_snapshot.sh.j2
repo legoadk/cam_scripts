@@ -15,10 +15,12 @@ main () {
 
   while true
   do
-    #if ffmpeg -hide_banner -loglevel error -i rtsp://localhost:{{ stream_port }}/stream -ss 00:00:01 -f image2 -vframes 1 - \
-
-    if rpicam-still -t 1 --immediate --width {{ still_width }} --height {{ still_height }}  -o - \
-    | curl   https://webcam.connect.prusa3d.com/c/snapshot   \
+    {% if install_go2rtc %}
+    if curl http://localhost:1984/api/frame.jpeg?src=cam -o - \
+    {% else %}
+    if rpicam-still -t 1 --immediate --width {{ camera_width }} --height {{ camera_height }}  -o - \
+    {% endif %}
+    | curl https://webcam.connect.prusa3d.com/c/snapshot \
       -X PUT \
       -L --fail-with-body \
       -H "Content-Type: image/jpg" \
@@ -27,11 +29,11 @@ main () {
       --data-binary @-
     then
       printf "."
-      sleep {{ still_delay_sec }} 
+      sleep {{ snapshot_delay_sec }} 
     else
       echo
       echo "?"
-      sleep {{ still_delay_sec_error }}
+      sleep {{ snapshot_delay_sec_error }}
     fi
   done
 }
