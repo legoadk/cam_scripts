@@ -22,7 +22,7 @@ main () {
     {% endif %}
     | curl https://webcam.connect.prusa3d.com/c/snapshot \
       -X PUT \
-      -L --fail-with-body \
+      -L --fail{% if ansible_distribution_release == 'bookworm' %}-with-body {% endif %} \ {# legacy os doesn't have new enough curl to support fail-with-body #}
       -H "Content-Type: image/jpg" \
       -H "Fingerprint: $FINGERPRINT" \
       -H "Token: $TOKEN" \

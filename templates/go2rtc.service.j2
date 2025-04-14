@@ -4,8 +4,8 @@ After=network.target rc-local.service
 
 [Service]
 Restart=always
-WorkingDirectory=/var/lib/go2rtc/
-ExecStart=/var/lib/go2rtc/go2rtc
+WorkingDirectory=/opt/go2rtc/
+ExecStart=/opt/go2rtc/go2rtc
 
 [Install]
 WantedBy=multi-user.target
