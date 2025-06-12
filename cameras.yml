@@ -6,23 +6,79 @@
   gather_facts: true
 
   tasks:
-    - name: Install dependencies (bullseye)
-      when: install_go2rtc is true and ansible_distribution_release == 'bullseye'
-      ansible.builtin.apt:
-        package:
-          - libcamera-apps-lite
-          - ffmpeg
-        state: present
-        update_cache: true
+    - name: Add repository (log2ram)
+      block:
+        - name: Get log2ram signing key
+          ansible.builtin.get_url:
+            url: https://azlux.fr/repo.gpg
+            dest: /usr/share/keyrings/azlux-archive-keyring.gpg
+            mode: "0644"
+        - name: Add log2ram repo
+          ansible.builtin.apt_repository:
+            repo: "deb [signed-by=/usr/share/keyrings/azlux-archive-keyring.gpg] http://packages.azlux.fr/debian/ {{ ansible_distribution_release }} main"
+            state: present
 
-    - name: Install dependencies (bookworm)
+    - name: System packages (bullseye)
+      when: install_go2rtc is true and ansible_distribution_release == 'bullseye'
+      block:
+        - name: Install dependencies (bullseye)
+          ansible.builtin.apt:
+            package:
+              - libcamera-apps-lite
+              - ffmpeg
+              - log2ram
+              - rsync
+            state: present
+            update_cache: true
+
+    - name: System packages (bookworm)
       when: install_go2rtc is true and ansible_distribution_release == 'bookworm'
-      ansible.builtin.apt:
-        package:
-          - rpicam-apps-lite
-          - ffmpeg
-        state: present
-        update_cache: true
+      block:
+        - name: Install dependencies (bookworm)
+          ansible.builtin.apt:
+            package:
+              - rpicam-apps-lite
+              - ffmpeg
+              - log2ram
+              - rsync
+            state: present
+            update_cache: true
+
+    - name: System configuration (any os)
+      block:
+        - name: Remove unneded packages
+          ansible.builtin.apt:
+            package:
+              - triggerhappy
+              - avahi-daemon
+              - modemmanager
+            state: absent
+
+        - name: Disable mandb rebuilding
+          ansible.builtin.file:
+            path: /var/lib/man-db/auto-update
+            state: absent
+
+        - name: Disable services
+          ansible.builtin.systemd_service:
+            name: "{{ item }}"
+            enabled: false
+            state: stopped
+          loop:
+            - man-db.timer
+            - bluetooth.service
+            - hciuart.service
+            - apt-daily-upgrade.timer
+            - apt-daily.timer
+
+        - name: Mask services
+          ansible.builtin.systemd_service:
+            name: "{{ item }}"
+            masked: true
+          loop:
+            - man-db
+            - apt-daily-upgrade
+            - apt-daily
 
     - name: Install and configure go2rtc
       when: install_go2rtc is true
